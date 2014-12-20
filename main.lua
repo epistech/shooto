@@ -1,6 +1,8 @@
 local physics = require("physics")
 physics.start()
 
+lasers = {}
+
 -- print logs data to the console, has nothing to do with on-screen display.
 print( "Hello World!" )
 
@@ -8,15 +10,19 @@ print( "Hello World!" )
 local myTextObject = display.newText( "+==/||\\==+", 160, 340, "Arial", 60)
 myTextObject:setFillColor(1,.65,0)
 
+local shooto = display.newText("shooto", display.contentCenterX, 525, "Arial", 80)
+shooto:setFillColor(1,0,0)
+
 local badguy = display.newText("@@", 35,75, "Courier", 40)
-physics.addBody(badguy, "kinematic", {density=0.01,friction=0.5, bounce=0.3})
+physics.addBody(badguy, "dynamic", {density=0.01,friction=0.5, bounce=0.3 })
+badguy.gravityScale=-.05
 
 
 local function startGame()
 	print "game started..."
-	if (quitter == false and badguy.x < 300) then
+	if (quitter == false and badguy.position.x < 300) then
 		badguy:translate(300)
-	elseif (quitter == false and badguy.x > 300) then
+	elseif (quitter == false and badguy.position.x > 300) then
 		badguy:translate(-300)
 	elseif (quitter == true ) then
 		return true
@@ -26,7 +32,7 @@ startGame()
 
 
 -- Initialize score tracker
-local score = "0"
+local score = 0
 local showScore = display.newText(score,300,30,"Courier",30)
 
 --Event handler for touch event; mostly stolen
@@ -45,27 +51,28 @@ end
 --[[Totally un-factored functions that handle the gameplay; most of which are shoddily
 	constructed because they're an outgrowth of a tutorial project ]]--
 
+function listener1()
+  print("listening for the quiet...?")
+  blaster:removeSelf()
+end
+
+
 function fireLasers()
-	blaster = display.newImage("laserA.png", 6,9)
-	physics.addBody(blaster, "dynamic", {density=5.0,bounce=0.1,radius=10} )
-	blaster.gravityScale = 0
-	blaster.isBullet = true
-	blaster.x = myTextObject.x
-	blaster.y = myTextObject.y
-	transition.to(blaster, {time=1000, y = -50})
+	-- print(x, y)
+	table.insert(lasers, display.newCircle( myTextObject.x, myTextObject.y + 10, 10 ))
 	
-	blaster = nil
-end
-
-local function handleFireButton( event )
-	if (event.phase == "moved") then
-		fireLasers()
-		print("event: moved")
+	for i,v in ipairs(lasers) do
+		physics.addBody(v, "dynamic", {density=5.0,bounce=0.1,radius=10} )
+		v.isBullet = true
+		
+		transition.to(v, {time=500, y = -50, onComplete=table.remove(lasers,i)})
 	end
-	return true
 end
 
-myTextObject:addEventListener("touch", handleFireButton)
+	
+
+
+shooto:addEventListener("tap", fireLasers)
 
 function bgTap()
   local x = math.random(-200,200)
@@ -87,10 +94,13 @@ function screenTap()
 end
 
 function scoreplus()
-  score = score + 1
-  showScore.text = score
-  if (score > 100) then
+  if (score > 50 and quitter == false) then
+  	showScore = nil
+  	badguy = nil
     endgame()
+  else
+    score = score + 1
+    showScore.text = score
   end
 end
 
@@ -99,21 +109,14 @@ badguy:addEventListener( "collision", scoreplus )
 
 -- When the end-state is reached, display score.
 function endgame()
-  -- was using print to test for "accurate" boundaries because of kinda weird screen tracking system.
-  -- print(myTextObject.x,myTextObject.y)
-  quitter = true
+  quitter = true	
   local finished = display.newText("Your final score is "..score, 150, 240, "Courier", 20)
-  finished:addEventListener("tap", removeScene)
-  
-  
 end
-
-  
 
 
 -- Add the "tap" event listener to myTextObject, and call "bgTap" when triggered.
 -- The difference between colons and periods to call functions versus data is a little tricky. Careful!
-myTextObject:addEventListener( "tap", bgTap )
+-- myTextObject:addEventListener( "tap", bgTap )
 
 --Initialize event listener for object "myTextObject"
 myTextObject:addEventListener("touch", myTextObject)
