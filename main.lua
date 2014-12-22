@@ -48,8 +48,6 @@ function startGame()
 
 
 	function scoreplus(event)
-		print(event.object1)
-	  	-- print(table.concat(event,"::"))
 	  if (score > 4 and quitter == false) then
 		endgame("win")
 	  else
