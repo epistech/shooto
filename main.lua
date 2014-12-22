@@ -1,125 +1,109 @@
 local physics = require("physics")
 physics.start()
 
-lasers = {}
 
--- print logs data to the console, has nothing to do with on-screen display.
-print( "Hello World!" )
+function startGame()
+	lasers = {}
+	n = 0
 
---Initialize the main text object
-local myTextObject = display.newText( "+==/||\\==+", 160, 340, "Arial", 60)
-myTextObject:setFillColor(1,.65,0)
+	quitter = false
 
-local shooto = display.newText("shooto", display.contentCenterX, 525, "Arial", 80)
-shooto:setFillColor(1,0,0)
+	--Initialize the main text object
+	myTextObject = display.newText( "+==/||\\==+", 160, 340, "Arial", 60)
+	myTextObject:setFillColor(1,.65,0)
 
-local badguy = display.newText("@@", 35,75, "Courier", 40)
-physics.addBody(badguy, "dynamic", {density=0.01,friction=0.5, bounce=0.3 })
-badguy.gravityScale=-.05
-
-
-local function startGame()
-	print "game started..."
-	if (quitter == false and badguy.position.x < 300) then
-		badguy:translate(300)
-	elseif (quitter == false and badguy.position.x > 300) then
-		badguy:translate(-300)
-	elseif (quitter == true ) then
-		return true
-	end
-end
-startGame()
-
-
--- Initialize score tracker
-local score = 0
-local showScore = display.newText(score,300,30,"Courier",30)
 
 --Event handler for touch event; mostly stolen
-function myTextObject:touch( event )
-  if event.phase == "began" then
-    self.markX = self.x
-    self.markY = self.y
-  elseif event.phase == "moved" then
-    local x = (event.x - event.xStart) + self.markX
-    local y = (event.y - event.yStart) + self.markY
-    self.x, self.y = x, y
-  end
-  return true
-end
-
---[[Totally un-factored functions that handle the gameplay; most of which are shoddily
-	constructed because they're an outgrowth of a tutorial project ]]--
-
-function listener1()
-  print("listening for the quiet...?")
-  blaster:removeSelf()
-end
-
-
-function fireLasers()
-	-- print(x, y)
-	table.insert(lasers, display.newCircle( myTextObject.x, myTextObject.y + 10, 10 ))
-	
-	for i,v in ipairs(lasers) do
-		physics.addBody(v, "dynamic", {density=5.0,bounce=0.1,radius=10} )
-		v.isBullet = true
-		
-		transition.to(v, {time=500, y = -50, onComplete=table.remove(lasers,i)})
+	function myTextObject:touch( event )
+	  if event.phase == "began" then
+		self.markX = self.x
+		self.markY = self.y
+	  elseif event.phase == "moved" then
+		local x = (event.x - event.xStart) + self.markX
+		local y = (event.y - event.yStart) + self.markY
+		self.x, self.y = x, y
+	  end
+	  return true
 	end
+	myTextObject:addEventListener("touch", myTextObject)
+
+	shooto = display.newText("shooto", display.contentCenterX, 525, "Arial", 80)
+	shooto:setFillColor(1,0,0)
+
+	function fireLasers()
+		-- print(x, y)
+		n = n + 1
+		lasers[n] = display.newCircle( myTextObject.x, myTextObject.y + 10, 10 )
+		physics.addBody(lasers[n], "kinematic", {density=0.5,bounce=1.0,radius=10} )
+		lasers[n].isBullet = true		
+		transition.to(lasers[n], {time=500, y = -50})
+		lasers[n].myName = "laser"..n
+	end
+	shooto:addEventListener("tap", fireLasers)
+
+	badguy = display.newText("@", 35,75, "Courier", 40)
+	physics.addBody(badguy, "dynamic", {density=2.0, friction=0.5, bounce=1 })
+	badguy.gravityScale=0
+	badguy.myName = "badguy"
+
+
+	function scoreplus(event)
+		print(event.object1)
+	  	-- print(table.concat(event,"::"))
+	  if (score > 4 and quitter == false) then
+		endgame("win")
+	  else
+		score = score + 1
+		showScore.text = score
+		badguy:applyLinearImpulse( 1, 1, event.x, event.y )
+	  end
+	end
+	badguy:addEventListener( "collision", scoreplus )
+
+	-- Initialize score tracker
+	score = 0
+	showScore = display.newText(score,300,30,"Courier",30)
+
+
+	display.remove(restart)
+	display.remove(finished)
+
 end
-
-	
-
-
-shooto:addEventListener("tap", fireLasers)
-
-function bgTap()
-  local x = math.random(-200,200)
-  local y = math.random(-200,200)
-  -- myTextObject:translate (x,y)
-  -- screenTap()
-  scoreplus()
-  if myTextObject.x < -200 or myTextObject.y < -20 or myTextObject.x > 475 or myTextObject.y > 590 then
-    endgame()
-  end
-end
-
--- Just changes color of the "Hello World!" text.
-function screenTap()
-  local r = math.random (0,100)
-  local g = math.random (0,100)
-  local b = math.random (0,100)
-  myTextObject:setFillColor(r/100,g/100,b/100)
-end
-
-function scoreplus()
-  if (score > 50 and quitter == false) then
-  	showScore = nil
-  	badguy = nil
-    endgame()
-  else
-    score = score + 1
-    showScore.text = score
-  end
-end
-
-badguy:addEventListener( "collision", scoreplus )
-
 
 -- When the end-state is reached, display score.
-function endgame()
+function endgame(state)
   quitter = true	
-  local finished = display.newText("Your final score is "..score, 150, 240, "Courier", 20)
+
+  finished = display.newText("You "..state..". Your final score is "..score, display.actualContentWidth*.5, display.actualContentHeight*.5, display.actualContentWidth*.8, 50, "Courier", 20)
+	if(state == "lose") then
+		finished:setFillColor( 1, 0, 0 )
+	elseif(state == "failx0rs") then
+		finished:setFillColor( 1, 0, 1 )
+	elseif(state == "win") then
+		finished:setFillColor( 0, 1, 0 )
+	end
+	myTextObject:removeSelf()
+	shooto:removeSelf()
+	showScore:removeSelf()
+	badguy:removeSelf()
+	
+	restart = display.newText("Play Again?", display.actualContentWidth*.5, display.actualContentHeight*.8, native.systemFont, 16 )
+	restart:addEventListener("tap", startGame)
 end
 
+local myListener = function( event )
+	if(quitter == false) then
+		if(badguy.y > display.actualContentHeight + 10 or badguy.y < -10 ) then
+			endgame("lose")
+		elseif(badguy.x > display.actualContentWidth + 10 or badguy.x < -10 ) then
+			endgame("lose")
+		elseif (myTextObject.x > display.actualContentWidth + 80 or myTextObject.x < -80) then
+			endgame("failx0rs")
+		end
+	end
+end
+-- Listener based on FPS intervals checks for a losing endgame state and triggers the endgame function accordingly.
+Runtime:addEventListener( "enterFrame", myListener )
 
--- Add the "tap" event listener to myTextObject, and call "bgTap" when triggered.
--- The difference between colons and periods to call functions versus data is a little tricky. Careful!
--- myTextObject:addEventListener( "tap", bgTap )
 
---Initialize event listener for object "myTextObject"
-myTextObject:addEventListener("touch", myTextObject)
-
--- This eventListener applies a "tap" handler to the entire stage as opposed to just myTextObject.
--- display.currentStage:addEventListener ("tap", bgTap)
+startGame()
