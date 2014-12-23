@@ -8,6 +8,8 @@ lasers = {}
 bouncePoint = {}
 bounceGroup = display.newGroup()
 
+background = display.newGroup()
+
 n = 0
 b = 0
 
@@ -19,10 +21,11 @@ Runtime:addEventListener( "accelerometer", onAccelerate )
 
 
 function startGame()
+	showBG = true
 	quitter = false
 
 	--Initialize the main text object
-	myTextObject = display.newText( "^==/||\\==^", 160, 340, "Arial Bold", 40)
+	myTextObject = display.newText( "^==/||\\==^", 160, 340, "Arial", 40)
 	myTextObject:setFillColor(1,.65,0)
 	
 	-- Initialize the markX,Y object variables so that runtime errors don't happen when you touch things too fast.
@@ -71,10 +74,11 @@ function startGame()
 	physics.addBody(badguy, "dynamic", {density=2.0, friction=0.5, bounce=0.2 })
 	badguy.gravityScale=0
 	badguy.myName = "badguy"
+	badguy:setFillColor(128,128,0)
 
 
 	function scoreplus(event)
-	  if (score > b^3 and quitter == false) then
+	  if (score > 3*b+b^2 and quitter == false) then
 		endgame("win")
 	  else
 		score = score + 1
@@ -115,7 +119,9 @@ function endgame(state)
 		b = 0
 		bounceGroup:removeSelf()
 		bounceGroup = display.newGroup()
-
+		
+		showBG = false
+		
 	elseif(state == "failx0rs") then
 		finished:setFillColor( 1, 0, 1 )
 		b = 0
@@ -124,6 +130,8 @@ function endgame(state)
 		bounceGroup:removeSelf()
 		bounceGroup = display.newGroup()
 		
+		showBG = false
+
 	elseif(state == "win") then
 		finished:setFillColor( 0, 1, 0 )
 		restart.text = "CONTINUE..."
@@ -135,7 +143,6 @@ function endgame(state)
 	shooto:removeSelf()
 	badguy:removeSelf()
 	laserGroup:removeSelf()
-
 	restart:addEventListener("tap", startGame)
 end
 
@@ -149,9 +156,17 @@ local myListener = function( event )
 			endgame("failx0rs")
 		end
 	end
+	timer.performWithDelay(500, starscape)
 end
 -- Listener based on FPS intervals checks for a losing endgame state and triggers the endgame function accordingly.
 Runtime:addEventListener( "enterFrame", myListener )
 
+function starscape()
+	if (showBG == true) then
+		bg = display.newRect(math.random(2,318),-50,1,math.random(10,30))
+		background:insert(bg)
+		transition.to(bg, {time=7000,y=1000})
+	end
+end
 
 startGame()
