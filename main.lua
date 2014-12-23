@@ -1,17 +1,34 @@
 local physics = require("physics")
 physics.start()
+system.activate( "multitouch" )
+
+score = 0
+showScore = display.newText(score,300,30,"Courier",30)
+lasers = {}
+bouncePoint = {}
+bounceGroup = display.newGroup()
+
+n = 0
+b = 0
+
+
+local function onAccelerate( event )
+    print( event.name, event.xGravity, event.yGravity, event.zGravity )
+end
+Runtime:addEventListener( "accelerometer", onAccelerate )
 
 
 function startGame()
-	lasers = {}
-	n = 0
-
 	quitter = false
 
 	--Initialize the main text object
-	myTextObject = display.newText( "+==/||\\==+", 160, 340, "Arial", 60)
+	myTextObject = display.newText( "^==/||\\==^", 160, 340, "Arial Bold", 40)
 	myTextObject:setFillColor(1,.65,0)
-
+	
+	-- Initialize the markX,Y object variables so that runtime errors don't happen when you touch things too fast.
+	myTextObject.markX = myTextObject.x
+	myTextObject.markY = myTextObject.y
+	laserGroup = display.newGroup()
 
 --Event handler for touch event; mostly stolen
 	function myTextObject:touch( event )
@@ -30,25 +47,34 @@ function startGame()
 	shooto = display.newText("shooto", display.contentCenterX, 525, "Arial", 80)
 	shooto:setFillColor(1,0,0)
 
+	function installBouncePoints()
+		b = b + 1
+		bouncePoint[b] = display.newRect(math.random(5,27)*12,math.random(5,35)*12,20,20)
+		physics.addBody(bouncePoint[b], "static", {density=1, bounce=0.1, friction=0.5})
+		print(b.." bounce points")
+		bounceGroup:insert(bouncePoint[b])
+	end
+
 	function fireLasers()
-		-- print(x, y)
 		n = n + 1
 		lasers[n] = display.newCircle( myTextObject.x, myTextObject.y + 10, 10 )
 		physics.addBody(lasers[n], "kinematic", {density=0.5,bounce=1.0,radius=10} )
 		lasers[n].isBullet = true		
 		transition.to(lasers[n], {time=500, y = -50})
-		lasers[n].myName = "laser"..n
+		
+		laserGroup:insert(lasers[n])
+		
 	end
 	shooto:addEventListener("tap", fireLasers)
 
 	badguy = display.newText("@", 35,75, "Courier", 40)
-	physics.addBody(badguy, "dynamic", {density=2.0, friction=0.5, bounce=1 })
+	physics.addBody(badguy, "dynamic", {density=2.0, friction=0.5, bounce=0.2 })
 	badguy.gravityScale=0
 	badguy.myName = "badguy"
 
 
 	function scoreplus(event)
-	  if (score > 4 and quitter == false) then
+	  if (score > b^3 and quitter == false) then
 		endgame("win")
 	  else
 		score = score + 1
@@ -58,14 +84,11 @@ function startGame()
 	end
 	badguy:addEventListener( "collision", scoreplus )
 
+
 	-- Initialize score tracker
-	score = 0
-	showScore = display.newText(score,300,30,"Courier",30)
-
-
 	display.remove(restart)
 	display.remove(finished)
-
+	installBouncePoints()
 end
 
 -- When the end-state is reached, display score.
@@ -73,19 +96,46 @@ function endgame(state)
   quitter = true	
 
   finished = display.newText("You "..state..". Your final score is "..score, display.actualContentWidth*.5, display.actualContentHeight*.5, display.actualContentWidth*.8, 50, "Courier", 20)
+
+	if (b > 10) then
+		bounceGroup:removeSelf()
+	else
+		
+	end
+
+
+	restart = display.newText("Play Again?", display.actualContentWidth*.5, display.actualContentHeight*.8, native.systemFont, 16 )
+
+
 	if(state == "lose") then
 		finished:setFillColor( 1, 0, 0 )
+		score = 0
+		showScore.text = 0
+
+		b = 0
+		bounceGroup:removeSelf()
+		bounceGroup = display.newGroup()
+
 	elseif(state == "failx0rs") then
 		finished:setFillColor( 1, 0, 1 )
+		b = 0
+		score = 0
+		showScore.text = 0
+		bounceGroup:removeSelf()
+		bounceGroup = display.newGroup()
+		
 	elseif(state == "win") then
 		finished:setFillColor( 0, 1, 0 )
+		restart.text = "CONTINUE..."
+		finished.text = finished.text.."... NEXT LEVEL"
+
 	end
+
 	myTextObject:removeSelf()
 	shooto:removeSelf()
-	showScore:removeSelf()
 	badguy:removeSelf()
-	
-	restart = display.newText("Play Again?", display.actualContentWidth*.5, display.actualContentHeight*.8, native.systemFont, 16 )
+	laserGroup:removeSelf()
+
 	restart:addEventListener("tap", startGame)
 end
 
