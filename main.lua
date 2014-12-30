@@ -123,7 +123,7 @@ function startGame()
 	end
 	shooto:addEventListener("tap", fireLasers)
 
-	badguy = display.newText("@", 35,75, "Courier", 40)
+	badguy = display.newText("@", math.random(35,275),math.random(35,375), "Courier", 40)
 	physics.addBody(badguy, "dynamic", {density=2.0, friction=0.5, bounce=0.2 })
 	badguy.gravityScale=0
 	badguy.myName = "badguy"
@@ -132,6 +132,9 @@ function startGame()
 
 	function scoreplus(event)
 	  if (score > levelScore + b^2 and quitter == false) then
+		score = score + 1
+		showScore.text = score
+		badguy:applyLinearImpulse( 1, 1, event.x, event.y )
 		endgame("win")
 		levelScore = score
 	  else
