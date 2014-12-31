@@ -1,3 +1,13 @@
+--[[
+Spaceship Mini-Golf 1.0.7a1
+
+
+
+
+]]--
+-- require("sample11")
+
+
 local physics = require("physics")
 physics.start()
 system.activate( "multitouch" )
@@ -13,37 +23,27 @@ showHigh.align = "left"
 
 lasers = {}
 bouncePoint = {}
-bounceGroup = display.newGroup()
 
+bounceGroup = display.newGroup()
 background = display.newGroup()
 
+
+--[[ Disable music for now...
 local backgroundMusic = audio.loadStream( "ShootoLoop.wav" )
 local backgroundMusicChannel = audio.play( backgroundMusic, { channel=1, loops=-1, fadein=5000 } )
-
+]]--
 
 n = 0
 b = 0
 
-
---[[ Testing the accelerometer functions for screwing around with this.
-axx = display.newText("X:", 10, 450, "Arial", 12)
-axy = display.newText("Y:", 10, 465, "Arial", 12)
-axz = display.newText("Z:", 10, 480, "Arial", 12)
-local function onAccelerate( event )
-	axx.text = "X:"..event.xGravity
-	axy.text = "Y:"..event.yGravity
-	axz.text = "Z:"..event.zGravity
-    print( event.name, event.xGravity, event.yGravity, event.zGravity )
-end
-Runtime:addEventListener( "accelerometer", onAccelerate )
-]]--
 
 -- This is the function that writes the background starscape; it's called by the FPS interval listener.
 function starscape()
 	if (showBG == true) then
 		bg = display.newRect(math.random(2,318),-50,1,math.random(10,30))
 		background:insert(bg)
-		transition.to(bg, {time=7000,y=1000})
+		-- print("background: "..background.maxN)
+		transition.to(bg, {time=10000,y=2000})
 	end
 end
 
@@ -52,11 +52,24 @@ function startGame()
 	quitter = false
 
 	shippo = graphics.newImageSheet( "ship_sprite.png", {width = 180, height = 70, numFrames = 4} )
+	holey =  graphics.newImageSheet( "blackhole.png",   {width =  80, height = 80, numFrames = 12})
 
 	spaceship = display.newSprite(shippo, {name="flying", time=1000, frames={1,3,2,4}, loopCount = 0, loopDirection = "forward"})
+	blackhole = display.newSprite(holey,  {time = 500, start = 1, count = 12})
+	
 	spaceship:play()
+	blackhole:play()
 
-	spaceship.x,spaceship.y = 180,360
+	spaceship.x,spaceship.y = 180,400
+	blackhole.x,blackhole.y = 180,80
+
+	physics.addBody(blackhole, "static", {gravity=0,density=1.0, friction=0.5, bounce=0.2 })
+	blackhole.myName = "blackhole"
+	blackhole.isSensor = true
+	--blackhole.addEventListener("collision",print("blackhole collided with "))
+
+
+
 
 
 	function spaceship:touch( event )
@@ -86,20 +99,6 @@ function startGame()
 	spaceship.markY = spaceship.y
 	laserGroup = display.newGroup()
 
---[[Event handler for touch event; mostly stolen
-	function myTextObject:touch( event )
-	  if event.phase == "began" then
-		self.markX = self.x
-		self.markY = self.y
-	  elseif event.phase == "moved" then
-		local x = (event.x - event.xStart) + self.markX
-		local y = (event.y - event.yStart) + self.markY
-		self.x, self.y = x, y
-	  end
-	  return true
-	end
-	myTextObject:addEventListener("touch", myTextObject)
-]]--
 	shooto = display.newText("shooto", display.contentCenterX, 525, "Arial", 80)
 	shooto:setFillColor(1,0,0)
 
@@ -107,15 +106,19 @@ function startGame()
 		b = b + 1
 		bouncePoint[b] = display.newRect(math.random(5,27)*12,math.random(5,35)*12,20,20)
 		physics.addBody(bouncePoint[b], "static", {density=1, bounce=0.1, friction=0.5})
-		print(b.." bounce points")
+		-- print(b.." bounce points")
 		bounceGroup:insert(bouncePoint[b])
+		bouncePoint[b].myName = "crate"..b
 	end
 
 	function fireLasers()
 		n = n + 1
 		lasers[n] = display.newCircle( spaceship.x, spaceship.y + 10, 10 )
+		-- lasers[n] = display.newRect( spaceship.x, spaceship.y - 10, 3, 25 )
+		
 		physics.addBody(lasers[n], "kinematic", {density=0.5,bounce=1.0,radius=10} )
-		lasers[n].isBullet = true		
+		lasers[n].isBullet = true	
+		lasers[n].myName = "laser"..n	
 		transition.to(lasers[n], {time=500, y = -50})
 		
 		laserGroup:insert(lasers[n])
@@ -123,29 +126,55 @@ function startGame()
 	end
 	shooto:addEventListener("tap", fireLasers)
 
+	-- badguy = display.newCircle(math.random(35,275),math.random(35,375), 20)
+	-- badguy = display.newRect(math.random(35,275),math.random(35,375), 25, 25)
 	badguy = display.newText("@", math.random(35,275),math.random(35,375), "Courier", 40)
-	physics.addBody(badguy, "dynamic", {density=2.0, friction=0.5, bounce=0.2 })
+	-- badguy = display.newText("@", 10,50, "Courier", 40)
+	physics.addBody(badguy, "dynamic", {density=1, friction=0.5, bounce=0.2 })
 	badguy.gravityScale=0
+	badguy.angularDamping = 1
+	badguy.linearDamping = 0
 	badguy.myName = "badguy"
 	badguy:setFillColor(128,128,0)
 
+	local offScreen = function( event )
+		if(quitter == false) then
+			if(badguy.y > display.actualContentHeight + 10 or badguy.y < -10 ) then
+				endgame("lose")
+			elseif(badguy.x > display.actualContentWidth + 10 or badguy.x < -10 ) then
+				endgame("lose")
+			elseif (spaceship.x > display.actualContentWidth + 80 or spaceship.x < -80) then
+				endgame("failx0rs")
+			end
+		end
+		timer.performWithDelay(1000, starscape)
+	end
+	-- Listener based on FPS intervals checks for a losing endgame state and triggers the endgame function accordingly.
+	Runtime:addEventListener( "enterFrame", offScreen )
+
+
+
+
 
 	function scoreplus(event)
-	  if (score > levelScore + b^2 and quitter == false) then
-		score = score + 1
-		showScore.text = score
-		badguy:applyLinearImpulse( 1, 1, event.x, event.y )
-		endgame("win")
-		levelScore = score
-	  else
-		score = score + 1
-		showScore.text = score
-		badguy:applyLinearImpulse( 1, 1, event.x, event.y )
-	  end
+		if (event.phase == "began") then
+			event.other:removeSelf()
+			score = score + 1
+			showScore.text = score
+			badguy:applyLinearImpulse( 1, 1, event.x, event.y )
+		end			
+		
+		if (event.other.myName == "blackhole") then
+			print("collided wtih BlackHole")
+			levelScore = score
+			endgame("win")
+		elseif (event.other.myName ~= nil) then
+			print("collided with "..event.other.myName)
+		else
+			-- print("rando collision")
+		end
 
-	  print("Score: "..score)
-	  print("levelScore: "..levelScore)
-	  print("hiScore: "..hiScore)
+	  return true
 	end
 	badguy:addEventListener( "collision", scoreplus )
 
@@ -178,7 +207,6 @@ function endgame(state)
 		showScore.text = 0
 		bounceGroup:removeSelf()
 		bounceGroup = display.newGroup()
-		
 		showBG = false
 
 	elseif(state == "failx0rs") then
@@ -189,6 +217,7 @@ function endgame(state)
 		showScore.text = 0
 		bounceGroup:removeSelf()
 		bounceGroup = display.newGroup()
+
 		showBG = false
 
 -- Win-state advances to next level,
@@ -198,28 +227,11 @@ function endgame(state)
 		finished.text = finished.text.."... NEXT LEVEL"
 	end
 
-	-- myTextObject:removeSelf()
 	spaceship:removeSelf()
 	shooto:removeSelf()
 	badguy:removeSelf()
 	laserGroup:removeSelf()
 	restart:addEventListener("tap", startGame)
 end
-
-local myListener = function( event )
-	if(quitter == false) then
-		if(badguy.y > display.actualContentHeight + 10 or badguy.y < -10 ) then
-			endgame("lose")
-		elseif(badguy.x > display.actualContentWidth + 10 or badguy.x < -10 ) then
-			endgame("lose")
-		elseif (spaceship.x > display.actualContentWidth + 80 or spaceship.x < -80) then
-			endgame("failx0rs")
-		end
-	end
-	timer.performWithDelay(500, starscape)
-end
--- Listener based on FPS intervals checks for a losing endgame state and triggers the endgame function accordingly.
-Runtime:addEventListener( "enterFrame", myListener )
-
 
 startGame()
