@@ -1,12 +1,48 @@
 --[[
-Spaceship Mini-Golf 1.0.7a1
+Spaceship Mini-Golf 0.9 aka "shooto"
 
+NOTES:
+Lots of significant, but little, changes as described in updates section below.
+I figured out how to create some designed levels, which might be fun for a future update.
+Almost ready for a 1.0 release! Submit this sucker Sunday, 7/26!?
 
+UPDATES:
+* Changed badguy into a fancy sprite, which had a couple of effects. It's a lot heavier, for one.
+* Removed "SHOOTO" text, because it was confusing people.
+* Changed scoring to increase values as a per-level multiplier.
+* Added file-writing for high-score tracking.
+* Added music back in, with a longer loop.
+* Added iAds code for monetization.
+* Updated the end-of-play/end-of-level text to create apparent advancement.
 
+TODO:
+- Cleanup directory and remove excess/old files (music and sprite sheets, in particular).
+- Rebuild a new certificate for submission to app store.
+- Create a title screen and brief instructions.
+
+MAYBE:
+? Update art.
 
 ]]--
--- require("sample11")
+-- [[Check if a HighScore document exists, and read the entry. ]]--
 
+filePath = system.pathForFile( "hs.txt", system.DocumentsDirectory )
+filePath, errorString = io.open( filePath, "r" )
+
+if (filePath) then 
+	-- print("PATH: "..filePath)
+	hiScore = filePath:read( "*a" )
+	io.close( filePath )
+	filePath = nil
+else
+	print("ERROR: "..errorString)
+	hiScore = 0
+end
+
+sWide = display.contentWidth
+sHigh = display.contentHeight
+
+print(sWide.."by"..sHigh)
 
 local physics = require("physics")
 physics.start()
@@ -14,40 +50,131 @@ system.activate( "multitouch" )
 
 score = 0
 levelScore = 0
-hiScore = 0
 
-showScore = display.newText(score,300,30,"Courier",30)
-showHigh = display.newText("HiScore:"..hiScore, 50, 30, "Courier", 16)
+--[[ Default High score replaced with a persistent data file.
+hiScore = 0
+]]--
+
+showScore = display.newText(score,display.contentWidth*0.9, 30,"Courier", 30)
+showHigh = display.newText("HiScore: "..hiScore, sWide*0.17, 30, "Courier", 15)
 showHigh.align = "left"
 
 
 lasers = {}
 bouncePoint = {}
+starfield = {}
 
 bounceGroup = display.newGroup()
 background = display.newGroup()
 
-
---[[ Disable music for now...
-local backgroundMusic = audio.loadStream( "ShootoLoop.wav" )
+--[[ (undisabled music ]]--
+local backgroundMusic = audio.loadStream( "ShootoLoop2.wav" )
 local backgroundMusicChannel = audio.play( backgroundMusic, { channel=1, loops=-1, fadein=5000 } )
-]]--
 
 n = 0
+a = 0
 b = 0
+
+
+--==================================================================================================
+-- 
+-- Abstract: iAds Sample Project
+-- 
+--==================================================================================================
+
+-- Hide the status bar
+display.setStatusBar( display.HiddenStatusBar )
+
+-- Include the widget library
+local widget = require( "widget" )
+
+-- The name of the ad provider.
+local adNetwork = "iads"
+
+-- Replace with your own application ID
+local appID = "com.brooklynindiegames.shooto"
+
+-- Load Corona 'ads' library
+local ads = require "ads"
+
+--------------------------------------------------------------------------------
+-- Setup ad provider
+--------------------------------------------------------------------------------
+
+-- Set up ad listener.
+local function adListener( event )
+	-- event table includes:
+	-- 		event.provider
+	--		event.isError (e.g. true/false )
+	--		event.response - the localized description of the event (error or confirmation message)
+	local msg = event.response
+
+	-- just a quick debug message to check what response we got from the library
+	print("Message received from the ads library: ", msg)
+end
+
+-- Initialize the 'ads' library with the provider you wish to use.
+if appID then
+	ads.init( adNetwork, appID, adListener )
+end
+
+--------------------------------------------------------------------------------
+-- UI
+--------------------------------------------------------------------------------
+
+-- initial variables
+local sysModel = system.getInfo("model")
+local sysEnv = system.getInfo("environment")
+
+-- forward declaration for the showAd function
+local showAd
+
+-- Shows a specific type of ad
+showAd = function( adType )
+
+	local adX = display.screenOriginX
+	local adY = display.contentHeight
+
+--	if display.contentHeight <= 667 then
+--	-- Set adY for iPhone 4, 5, 6.
+--		adY = display.contentHeight-50 --100
+--		print("set adY to iphone small")
+--	elseif display.contentHeight == 736 then
+--	-- Set adY for iPhone 6+.
+--		adY = display.contentHeight-150
+--		print("set adY to 6+")
+--	elseif display.contentHeight == 1024 then
+--	-- Set adY for iPads.
+--		adY = display.contentHeight-132
+--		print("set adY to iPad")
+--	end
+--	print(adY)
+
+	ads.show( adType, { x=adX, y=adY } )
+end
+
+--------------------------------------------------------------------------------
+-- END ADS CODE
+--------------------------------------------------------------------------------
 
 
 -- This is the function that writes the background starscape; it's called by the FPS interval listener.
 function starscape()
 	if (showBG == true) then
-		bg = display.newRect(math.random(2,318),-50,1,math.random(10,30))
-		background:insert(bg)
+		a = a + 1	
+		starfield[a] = display.newRect(math.random(2,display.contentWidth-2),-50,1,math.random(10,30))
+		background:insert(starfield[a])
 		-- print("background: "..background.maxN)
-		transition.to(bg, {time=10000,y=2000})
+		transition.to(starfield[a], {time=10000,y=2000})
+		-- showScore.text = a
 	end
 end
+Runtime:addEventListener( "enterFrame", starscape )
+
 
 function startGame()
+	ads.hide()
+	
 	showBG = true
 	quitter = false
 
@@ -60,17 +187,13 @@ function startGame()
 	spaceship:play()
 	blackhole:play()
 
-	spaceship.x,spaceship.y = 180,400
-	blackhole.x,blackhole.y = 180,80
+	spaceship.x,spaceship.y = display.contentWidth/2, display.contentHeight*0.7
+	blackhole.x,blackhole.y = display.contentWidth/2, display.contentHeight*0.14
 
 	physics.addBody(blackhole, "static", {gravity=0,density=1.0, friction=0.5, bounce=0.2 })
 	blackhole.myName = "blackhole"
 	blackhole.isSensor = true
 	--blackhole.addEventListener("collision",print("blackhole collided with "))
-
-
-
-
 
 	function spaceship:touch( event )
 	  if event.phase == "began" then
@@ -84,8 +207,23 @@ function startGame()
 	  return true
 	end
 
+	function fireLasers()
+		n = n + 1
+		-- offsets below are to adjust for apparent visual center as opposed to object center
+		lasers[n] = display.newCircle( spaceship.x+10, spaceship.y + 10, 10 )
+		
+		-- lasers[n] = display.newRect( spaceship.x, spaceship.y - 10, 3, 25 )
+		physics.addBody(lasers[n], "kinematic", {density=0.5,bounce=1.0,radius=10} )
+		lasers[n].isBullet = true	
+		lasers[n].myName = "laser"..n	
+		transition.to(lasers[n], {time=500, y = -50})
+		
+		laserGroup:insert(lasers[n])
+	end
+	-- shooto:addEventListener("tap", fireLasers)
 
 	spaceship:addEventListener("touch", spaceship)
+	spaceship:addEventListener("tap", fireLasers)
 
 	--[[Initialize the main text object
 	myTextObject = display.newText( "^==/||\\==^", 160, 340, "Arial", 40)
@@ -99,67 +237,67 @@ function startGame()
 	spaceship.markY = spaceship.y
 	laserGroup = display.newGroup()
 
-	shooto = display.newText("shooto", display.contentCenterX, 525, "Arial", 80)
+--[[ Get rid of the "shooto" button that nobody understands.
+	 - Do something with a title screen instead.
+	shooto = display.newText("shooto", display.contentCenterX, display.contentHeight*0.92, "Arial", 80)
 	shooto:setFillColor(1,0,0)
+]]--
 
 	function installBouncePoints()
+		--drawStar = display.newLine( 200, 90, 227, 165, 305,165, 243,216, 265,290, 200,245, 135,290, 157,215, 95,165, 173,165, 200,90 )
+		--physics.addBody(drawStar, "static", {density=1, bounce=0.1, friction=0.5})
+		--drawStar:setStrokeColor( 1, 0, 0, 1 )
+		--drawStar.strokeWidth = 8
+-- [Set up new levels here] --
+
 		b = b + 1
-		bouncePoint[b] = display.newRect(math.random(5,27)*12,math.random(5,35)*12,20,20)
+		bouncePoint[b] = display.newRect(math.random(1,display.contentWidth/12)*12,math.random(1,display.contentHeight/35)*12,20,20)
+		print(display.contentWidth.." X "..sHigh.." Y")
 		physics.addBody(bouncePoint[b], "static", {density=1, bounce=0.1, friction=0.5})
 		-- print(b.." bounce points")
 		bounceGroup:insert(bouncePoint[b])
 		bouncePoint[b].myName = "crate"..b
 	end
 
-	function fireLasers()
-		n = n + 1
-		lasers[n] = display.newCircle( spaceship.x, spaceship.y + 10, 10 )
-		-- lasers[n] = display.newRect( spaceship.x, spaceship.y - 10, 3, 25 )
-		
-		physics.addBody(lasers[n], "kinematic", {density=0.5,bounce=1.0,radius=10} )
-		lasers[n].isBullet = true	
-		lasers[n].myName = "laser"..n	
-		transition.to(lasers[n], {time=500, y = -50})
-		
-		laserGroup:insert(lasers[n])
-		
-	end
-	shooto:addEventListener("tap", fireLasers)
+
+
+	baddie = graphics.newImageSheet( "badguy.png", {width = 50, height = 50, numFrames = 4} )
+	badguy = display.newSprite(baddie, {name="eeevil", time=500, frames={1,2,3,4}, loopCount = 0, loopDirection = "forward"})
+	badguy.x,badguy.y = math.random(display.contentWidth*.1,display.contentWidth*.9),math.random(display.contentHeight*.2,display.contentHeight*0.66)
+	badguy:play()
 
 	-- badguy = display.newCircle(math.random(35,275),math.random(35,375), 20)
 	-- badguy = display.newRect(math.random(35,275),math.random(35,375), 25, 25)
-	badguy = display.newText("@", math.random(35,275),math.random(35,375), "Courier", 40)
+	-- badguy = display.newText("@", math.random(35,275),math.random(35,375), "Courier", 40)
 	-- badguy = display.newText("@", 10,50, "Courier", 40)
+	
 	physics.addBody(badguy, "dynamic", {density=1, friction=0.5, bounce=0.2 })
 	badguy.gravityScale=0
 	badguy.angularDamping = 1
 	badguy.linearDamping = 0
 	badguy.myName = "badguy"
-	badguy:setFillColor(128,128,0)
+	-- badguy:setFillColor(0,128,0)
 
 	local offScreen = function( event )
 		if(quitter == false) then
 			if(badguy.y > display.actualContentHeight + 10 or badguy.y < -10 ) then
-				endgame("lose")
+				endgame("lost")
 			elseif(badguy.x > display.actualContentWidth + 10 or badguy.x < -10 ) then
-				endgame("lose")
+				endgame("lost")
 			elseif (spaceship.x > display.actualContentWidth + 80 or spaceship.x < -80) then
-				endgame("failx0rs")
+				endgame("failx0red")
 			end
 		end
-		timer.performWithDelay(1000, starscape)
 	end
 	-- Listener based on FPS intervals checks for a losing endgame state and triggers the endgame function accordingly.
 	Runtime:addEventListener( "enterFrame", offScreen )
-
-
-
+	
 
 
 	function scoreplus(event)
 		if (event.phase == "began") then
 			event.other:removeSelf()
-			score = score + 1
+			score = score + (1*b)
 			showScore.text = score
 			badguy:applyLinearImpulse( 1, 1, event.x, event.y )
 		end			
@@ -167,7 +305,7 @@ function startGame()
 		if (event.other.myName == "blackhole") then
 			print("collided wtih BlackHole")
 			levelScore = score
-			endgame("win")
+			endgame("succeeded")
 		elseif (event.other.myName ~= nil) then
 			print("collided with "..event.other.myName)
 		else
@@ -187,20 +325,25 @@ end
 -- When the end-state is reached, display score.
 function endgame(state)
 
-
-  if (score > hiScore) then
+  if (score > tonumber(hiScore)) then
     hiScore = score
-    showHigh.text = "HiScore:"..hiScore
+    showHigh.text = "HiScore: "..hiScore
+    
+--[[ Write a new file in overwrite mode, add the hiScore variable for future use. ]]--
+	filePath = system.pathForFile( "hs.txt", system.DocumentsDirectory )
+    filePath = io.open (filePath, "w")
+    filePath:write(hiScore)
+    io.close(filePath)
+    filePath = nil
   end
 
   quitter = true	
-
-  finished = display.newText("You "..state..". Your final score is "..score, display.actualContentWidth*.5, display.actualContentHeight*.5, display.actualContentWidth*.8, 50, "Courier", 20)
-
+  finished = display.newText("You have "..state..". Your score is "..score, display.actualContentWidth*.5, display.actualContentHeight*.5, display.actualContentWidth*.8, 60, "Courier", 20)
   restart = display.newText("Play Again?", display.actualContentWidth*.5, display.actualContentHeight*.8, native.systemFont, 16 )
 
-	if(state == "lose") then
+	if(state == "lost") then
 		finished:setFillColor( 1, 0, 0 )
+		a = 0
 		b = 0
 		score = 0
 		levelScore = 0
@@ -208,9 +351,14 @@ function endgame(state)
 		bounceGroup:removeSelf()
 		bounceGroup = display.newGroup()
 		showBG = false
+		-- background:removeSelf()
+		-- background = display.newGroup()
+		showAd( "banner" )
 
-	elseif(state == "failx0rs") then
+
+	elseif(state == "failx0red") then
 		finished:setFillColor( 1, 0, 1 )
+		a = 0
 		b = 0
 		score = 0
 		levelScore = 0
@@ -219,16 +367,20 @@ function endgame(state)
 		bounceGroup = display.newGroup()
 
 		showBG = false
+		-- background:removeSelf()
+		-- background = display.newGroup()
+		showAd( "banner" )
 
 -- Win-state advances to next level,
-	elseif(state == "win") then
+	elseif(state == "succeeded") then
 		finished:setFillColor( 0, 1, 0 )
-		restart.text = "CONTINUE..."
-		finished.text = finished.text.."... NEXT LEVEL"
+		restart.text = "ENTER LEVEL "..b+1
+		-- finished.text = finished.text.."... \nTAP CONTINUE"
+		showAd( "banner" )
 	end
-
+	
 	spaceship:removeSelf()
-	shooto:removeSelf()
+	-- shooto:removeSelf()
 	badguy:removeSelf()
 	laserGroup:removeSelf()
 	restart:addEventListener("tap", startGame)

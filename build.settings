@@ -6,6 +6,16 @@ settings =
     content = "portrait",
   },
 
+  plugins =
+  {
+      ["CoronaProvider.ads.iads"] =
+      {
+          publisherId = "com.coronalabs",
+          supportedPlatforms = { iphone=true, ["iphone-sim"]=true },
+      },
+  },      
+
+
   iphone =
   {
     plist =
