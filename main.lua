@@ -1,28 +1,5 @@
 --[[
-Spaceship Mini-Golf 0.9 aka "shooto"
-
-NOTES:
-Lots of significant, but little, changes as described in updates section below.
-I figured out how to create some designed levels, which might be fun for a future update.
-Almost ready for a 1.0 release! Submit this sucker Sunday, 7/26!?
-
-UPDATES:
-* Changed badguy into a fancy sprite, which had a couple of effects. It's a lot heavier, for one.
-* Removed "SHOOTO" text, because it was confusing people.
-* Changed scoring to increase values as a per-level multiplier.
-* Added file-writing for high-score tracking.
-* Added music back in, with a longer loop.
-* Added iAds code for monetization.
-* Updated the end-of-play/end-of-level text to create apparent advancement.
-
-TODO:
-- Cleanup directory and remove excess/old files (music and sprite sheets, in particular).
-- Rebuild a new certificate for submission to app store.
-- Create a title screen and brief instructions.
-
-MAYBE:
-? Update art.
-
+Spaceship Mini-Golf 0.91b aka "shooto"
 ]]--
 -- [[Check if a HighScore document exists, and read the entry. ]]--
 
@@ -75,7 +52,7 @@ n = 0
 a = 0
 b = 0
 
-
+--[[
 --==================================================================================================
 -- 
 -- Abstract: iAds Sample Project
@@ -156,7 +133,7 @@ end
 --------------------------------------------------------------------------------
 -- END ADS CODE
 --------------------------------------------------------------------------------
-
+]]--
 
 -- This is the function that writes the background starscape; it's called by the FPS interval listener.
 function starscape()
@@ -173,7 +150,7 @@ Runtime:addEventListener( "enterFrame", starscape )
 
 
 function startGame()
-	ads.hide()
+	-- ads.hide()
 	
 	showBG = true
 	quitter = false
@@ -220,7 +197,6 @@ function startGame()
 		
 		laserGroup:insert(lasers[n])
 	end
-	-- shooto:addEventListener("tap", fireLasers)
 
 	spaceship:addEventListener("touch", spaceship)
 	spaceship:addEventListener("tap", fireLasers)
@@ -239,9 +215,17 @@ function startGame()
 
 --[[ Get rid of the "shooto" button that nobody understands.
 	 - Do something with a title screen instead.
+	 o needs to be a graphical button?
 	shooto = display.newText("shooto", display.contentCenterX, display.contentHeight*0.92, "Arial", 80)
 	shooto:setFillColor(1,0,0)
+
 ]]--
+	shooto = display.newImage("shooto.png", display.contentCenterX, display.contentHeight*0.92)
+	
+	-- shooto.x,shooto.y = display.contentCenterX, display.contentHeight*0.92
+	shooto:addEventListener("tap", fireLasers)
+
+
 
 	function installBouncePoints()
 		--drawStar = display.newLine( 200, 90, 227, 165, 305,165, 243,216, 265,290, 200,245, 135,290, 157,215, 95,165, 173,165, 200,90 )
@@ -259,21 +243,34 @@ function startGame()
 		bouncePoint[b].myName = "crate"..b
 	end
 
+--[[ Add Texture Packer-built spritesheet foro the badguy animation
+	details stored in tadpole.lua
+ ]]--
+
+sheetInfo = require("tadpole")
+baddie = graphics.newImageSheet( "tadpole.png", sheetInfo:getSheet() )
+badguy = display.newSprite( baddie, {name="eeevil", time=600, frames={1,2,3,4,5,6,7,8}, loopCount = 0, loopDirection = "forward"} )
 
 
-	baddie = graphics.newImageSheet( "badguy.png", {width = 50, height = 50, numFrames = 4} )
+
+
+--[[End
+	baddie = graphics.newImageSheet( "badguy2.png", {width = 35, height = 35, numFrames = 4} )
 	badguy = display.newSprite(baddie, {name="eeevil", time=500, frames={1,2,3,4}, loopCount = 0, loopDirection = "forward"})
-	badguy.x,badguy.y = math.random(display.contentWidth*.1,display.contentWidth*.9),math.random(display.contentHeight*.2,display.contentHeight*0.66)
-	badguy:play()
 
 	-- badguy = display.newCircle(math.random(35,275),math.random(35,375), 20)
 	-- badguy = display.newRect(math.random(35,275),math.random(35,375), 25, 25)
 	-- badguy = display.newText("@", math.random(35,275),math.random(35,375), "Courier", 40)
 	-- badguy = display.newText("@", 10,50, "Courier", 40)
-	
+]]--	
+
+	badguy.x,badguy.y = math.random(display.contentWidth*.1,display.contentWidth*.9),math.random(display.contentHeight*.2,display.contentHeight*0.66)
+	badguy:play()
+
+
 	physics.addBody(badguy, "dynamic", {density=1, friction=0.5, bounce=0.2 })
 	badguy.gravityScale=0
-	badguy.angularDamping = 1
+	badguy.angularDamping = 3
 	badguy.linearDamping = 0
 	badguy.myName = "badguy"
 	-- badguy:setFillColor(0,128,0)
@@ -353,8 +350,9 @@ function endgame(state)
 		showBG = false
 		-- background:removeSelf()
 		-- background = display.newGroup()
-		showAd( "banner" )
 
+		-- Below is the banner ad instantiation code for iOS. The code as-is does not compile properly for Android.
+		-- showAd( "banner" )
 
 	elseif(state == "failx0red") then
 		finished:setFillColor( 1, 0, 1 )
@@ -369,18 +367,20 @@ function endgame(state)
 		showBG = false
 		-- background:removeSelf()
 		-- background = display.newGroup()
-		showAd( "banner" )
+		-- Below is the banner ad instantiation code for iOS. The code as-is does not compile properly for Android.
+		-- showAd( "banner" )
 
 -- Win-state advances to next level,
 	elseif(state == "succeeded") then
 		finished:setFillColor( 0, 1, 0 )
 		restart.text = "ENTER LEVEL "..b+1
 		-- finished.text = finished.text.."... \nTAP CONTINUE"
-		showAd( "banner" )
+		-- Below is the banner ad instantiation code for iOS. The code as-is does not compile properly for Android.
+		-- showAd( "banner" )
 	end
 	
 	spaceship:removeSelf()
-	-- shooto:removeSelf()
+	shooto:removeSelf()
 	badguy:removeSelf()
 	laserGroup:removeSelf()
 	restart:addEventListener("tap", startGame)
