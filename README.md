@@ -16,7 +16,6 @@ Lots of significant, but little, changes as described in updates section below. 
 - Turn the music down? It's pretty loud right now...
 - Design a static course to start with
 - Start designing a tutorial/set of instructions on how to play.
-- Experiment with different gun-types that work in different ways.
 - Cleanup directory and remove excess/old files (music and sprite sheets, in particular).
 - Rebuild a new certificate for submission to app store.
 - Create a title screen and brief instructions.
@@ -54,4 +53,5 @@ Lots of significant, but little, changes as described in updates section below. 
 
 Will Not Fix
 ------------
-- Figure out how to multi-touch turn the ship so that it can aim in different directions
+- Figure out how to multi-touch turn the ship so that it can aim in different directions.
+- Experiment with different gun-types that work in different ways.
