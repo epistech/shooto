@@ -1,8 +1,15 @@
---[[
-Spaceship Mini-Golf 0.91b aka "shooto"
-]]--
--- [[Check if a HighScore document exists, and read the entry. ]]--
+--[[ Spaceship Mini-Golf 0.92 aka "shooto" ]]--
+--[[=======================================]]--
+--   Programming by Tim Rodriguez
+--   Art by Tim Rodriguez
+--   Music by Tim Rodriguez (in Figure)
+--   Using Corona SDK, an iPhone 6+,
+--   an Azpen Android tablet, and time from
+--   Moment.
+--[[=======================================]]--
 
+
+-- Check if a HighScore document exists, and read the entry.
 filePath = system.pathForFile( "hs.txt", system.DocumentsDirectory )
 filePath, errorString = io.open( filePath, "r" )
 
@@ -18,7 +25,6 @@ end
 
 sWide = display.contentWidth
 sHigh = display.contentHeight
-
 print(sWide.."by"..sHigh)
 
 local physics = require("physics")
@@ -28,115 +34,29 @@ system.activate( "multitouch" )
 score = 0
 levelScore = 0
 
---[[ Default High score replaced with a persistent data file.
-hiScore = 0
-]]--
-
 showScore = display.newText(score,display.contentWidth*0.9, 30,"Courier", 30)
 showHigh = display.newText("HiScore: "..hiScore, sWide*0.17, 30, "Courier", 15)
 showHigh.align = "left"
 
-
-lasers = {}
-bouncePoint = {}
-starfield = {}
-
+-- TODO: Check if I need these as globals or if I can make them local variables as I did with some of the others.
 bounceGroup = display.newGroup()
 background = display.newGroup()
 
---[[ (undisabled music ]]--
-local backgroundMusic = audio.loadStream( "ShootoLoop2.wav" )
-local backgroundMusicChannel = audio.play( backgroundMusic, { channel=1, loops=-1, fadein=5000 } )
+-- Instantiate the music here.
+backgroundMusic = audio.loadStream( "ShootoLoop2.wav" )
+backgroundMusicChannel = audio.play( backgroundMusic, { channel=1, loops=-1, fadein=5000 } )
+audio.setVolume( 0.7, { channel=1 } )  
 
+-- "n" is used for iterating through lasers[n] objects to keep them unique.
 n = 0
+-- "a" is used for counting through the starfield[a] objects to keep them unique.
 a = 0
+-- "b" is used for calculating the level, among other things.
 b = 0
-
---[[
---==================================================================================================
--- 
--- Abstract: iAds Sample Project
--- 
---==================================================================================================
-
--- Hide the status bar
-display.setStatusBar( display.HiddenStatusBar )
-
--- Include the widget library
-local widget = require( "widget" )
-
--- The name of the ad provider.
-local adNetwork = "iads"
-
--- Replace with your own application ID
-local appID = "com.brooklynindiegames.shooto"
-
--- Load Corona 'ads' library
-local ads = require "ads"
-
---------------------------------------------------------------------------------
--- Setup ad provider
---------------------------------------------------------------------------------
-
--- Set up ad listener.
-local function adListener( event )
-	-- event table includes:
-	-- 		event.provider
-	--		event.isError (e.g. true/false )
-	--		event.response - the localized description of the event (error or confirmation message)
-	local msg = event.response
-
-	-- just a quick debug message to check what response we got from the library
-	print("Message received from the ads library: ", msg)
-end
-
--- Initialize the 'ads' library with the provider you wish to use.
-if appID then
-	ads.init( adNetwork, appID, adListener )
-end
-
---------------------------------------------------------------------------------
--- UI
---------------------------------------------------------------------------------
-
--- initial variables
-local sysModel = system.getInfo("model")
-local sysEnv = system.getInfo("environment")
-
--- forward declaration for the showAd function
-local showAd
-
--- Shows a specific type of ad
-showAd = function( adType )
-
-	local adX = display.screenOriginX
-	local adY = display.contentHeight
-
---	if display.contentHeight <= 667 then
---	-- Set adY for iPhone 4, 5, 6.
---		adY = display.contentHeight-50 --100
---		print("set adY to iphone small")
---	elseif display.contentHeight == 736 then
---	-- Set adY for iPhone 6+.
---		adY = display.contentHeight-150
---		print("set adY to 6+")
---	elseif display.contentHeight == 1024 then
---	-- Set adY for iPads.
---		adY = display.contentHeight-132
---		print("set adY to iPad")
---	end
---	print(adY)
-
-	ads.show( adType, { x=adX, y=adY } )
-end
-
---------------------------------------------------------------------------------
--- END ADS CODE
---------------------------------------------------------------------------------
-]]--
 
 -- This is the function that writes the background starscape; it's called by the FPS interval listener.
 function starscape()
+	local starfield = {}
 	if (showBG == true) then
 		a = a + 1	
 		starfield[a] = display.newRect(math.random(2,display.contentWidth-2),-50,1,math.random(10,30))
@@ -149,9 +69,33 @@ end
 Runtime:addEventListener( "enterFrame", starscape )
 
 
+-- Add a keystroke listener so that we can use the spacebar in the test builds and on computer builds.
+local function onKeyEvent( event )
+    -- The spacebar sends either " " or "space" depending on version of CoronaSDK in use.
+    -- "space" is the future, but keeping " " for now to maintain compatibility with the latest stable build.
+	if event.keyName == " " or event.keyName == "space" and event.phase == "down" then
+		fireLasers()
+	end
+
+    -- IMPORTANT! Return false to indicate that this app is NOT overriding the received key
+    -- This lets the operating system execute its default handling of the key
+    return false
+end
+
+-- A singleton function to store bullet types.
+function bullits(change)
+	if type(change) == "string" then
+		bulletType = change
+	end
+	return bulletType
+end
+
+
+-- This is the main body of the game. 
 function startGame()
-	-- ads.hide()
-	
+-- Add the key event listener here, so that it only listens while the game is running.
+	Runtime:addEventListener( "key", onKeyEvent )
+
 	showBG = true
 	quitter = false
 
@@ -183,55 +127,60 @@ function startGame()
 	  end
 	  return true
 	end
+	spaceship:addEventListener("touch", spaceship)
 
+
+-- Trying out a single function that takes a shot-type argument instead of building new functions, since the code is mostly the same.
+	laserGroup = display.newGroup()
 	function fireLasers()
-		n = n + 1
+		local lasers = {}
+		local n = n + 1
 		-- offsets below are to adjust for apparent visual center as opposed to object center
-		lasers[n] = display.newCircle( spaceship.x+10, spaceship.y + 10, 10 )
-		
-		-- lasers[n] = display.newRect( spaceship.x, spaceship.y - 10, 3, 25 )
+
+		if bullits() == "lasers" then
+			print("actually firing lasers")
+			lasers[n] = display.newCircle( spaceship.x+10, spaceship.y + 10, 10 )
+		elseif bullits() == "lines" then
+			print("actually firing lines")
+			lasers[n] = display.newLine( spaceship.x+10, spaceship.y + 10, spaceship.x+10, spaceship.y + 30 ) 
+		elseif bullits() == "blocks" then
+			print("actually firing blocks")
+			lasers[n] = display.newRect( spaceship.x, spaceship.y - 10, 50, 10 )
+		else
+			-- print("actually defaulting")
+			lasers[n] = display.newCircle( spaceship.x+10, spaceship.y + 10, 10 )
+		end
+
 		physics.addBody(lasers[n], "kinematic", {density=0.5,bounce=1.0,radius=10} )
 		lasers[n].isBullet = true	
-		lasers[n].myName = "laser"..n	
+		lasers[n].myName = "laser"..n
+		
+		-- straight-up bullet shots. Sine "wave gun" motion maybe in the future. See sine.lua for examples.
 		transition.to(lasers[n], {time=500, y = -50})
 		
 		laserGroup:insert(lasers[n])
 	end
-
-	spaceship:addEventListener("touch", spaceship)
 	spaceship:addEventListener("tap", fireLasers)
 
-	--[[Initialize the main text object
-	myTextObject = display.newText( "^==/||\\==^", 160, 340, "Arial", 40)
-	myTextObject:setFillColor(1,.65,0)
-]]--	
 
-
-	
 	-- Initialize the markX,Y object variables so that runtime errors don't happen when you touch things too fast.
 	spaceship.markX = spaceship.x
 	spaceship.markY = spaceship.y
-	laserGroup = display.newGroup()
 
---[[ Get rid of the "shooto" button that nobody understands.
-	 - Do something with a title screen instead.
-	 o needs to be a graphical button?
-	shooto = display.newText("shooto", display.contentCenterX, display.contentHeight*0.92, "Arial", 80)
-	shooto:setFillColor(1,0,0)
-
-]]--
+--[[ Get rid of the "shooto" button that nobody understands?
+	 Set a preference? ]]--
 	shooto = display.newImage("shooto.png", display.contentCenterX, display.contentHeight*0.92)
-	
-	-- shooto.x,shooto.y = display.contentCenterX, display.contentHeight*0.92
 	shooto:addEventListener("tap", fireLasers)
 
 
 
 	function installBouncePoints()
+		local bouncePoint = {}
 		--drawStar = display.newLine( 200, 90, 227, 165, 305,165, 243,216, 265,290, 200,245, 135,290, 157,215, 95,165, 173,165, 200,90 )
 		--physics.addBody(drawStar, "static", {density=1, bounce=0.1, friction=0.5})
 		--drawStar:setStrokeColor( 1, 0, 0, 1 )
 		--drawStar.strokeWidth = 8
+
 -- [Set up new levels here] --
 
 		b = b + 1
@@ -243,30 +192,13 @@ function startGame()
 		bouncePoint[b].myName = "crate"..b
 	end
 
---[[ Add Texture Packer-built spritesheet foro the badguy animation
-	details stored in tadpole.lua
- ]]--
-
-sheetInfo = require("tadpole")
-baddie = graphics.newImageSheet( "tadpole.png", sheetInfo:getSheet() )
-badguy = display.newSprite( baddie, {name="eeevil", time=600, frames={1,2,3,4,5,6,7,8}, loopCount = 0, loopDirection = "forward"} )
-
-
-
-
---[[End
-	baddie = graphics.newImageSheet( "badguy2.png", {width = 35, height = 35, numFrames = 4} )
-	badguy = display.newSprite(baddie, {name="eeevil", time=500, frames={1,2,3,4}, loopCount = 0, loopDirection = "forward"})
-
-	-- badguy = display.newCircle(math.random(35,275),math.random(35,375), 20)
-	-- badguy = display.newRect(math.random(35,275),math.random(35,375), 25, 25)
-	-- badguy = display.newText("@", math.random(35,275),math.random(35,375), "Courier", 40)
-	-- badguy = display.newText("@", 10,50, "Courier", 40)
-]]--	
+-- Add Texture Packer-built spritesheet for the badguy animation. Details stored in tadpole.lua
+	sheetInfo = require("tadpole")
+	baddie = graphics.newImageSheet( "tadpole.png", sheetInfo:getSheet() )
+	badguy = display.newSprite( baddie, {name="eeevil", time=600, frames={1,2,3,4,5,6,7,8}, loopCount = 0, loopDirection = "forward"} )
 
 	badguy.x,badguy.y = math.random(display.contentWidth*.1,display.contentWidth*.9),math.random(display.contentHeight*.2,display.contentHeight*0.66)
 	badguy:play()
-
 
 	physics.addBody(badguy, "dynamic", {density=1, friction=0.5, bounce=0.2 })
 	badguy.gravityScale=0
@@ -285,6 +217,8 @@ badguy = display.newSprite( baddie, {name="eeevil", time=600, frames={1,2,3,4,5,
 				endgame("failx0red")
 			end
 		end
+		
+		
 	end
 	-- Listener based on FPS intervals checks for a losing endgame state and triggers the endgame function accordingly.
 	Runtime:addEventListener( "enterFrame", offScreen )
@@ -296,17 +230,30 @@ badguy = display.newSprite( baddie, {name="eeevil", time=600, frames={1,2,3,4,5,
 			event.other:removeSelf()
 			score = score + (1*b)
 			showScore.text = score
-			badguy:applyLinearImpulse( 1, 1, event.x, event.y )
+			badguy:applyLinearImpulse( 2, 2, event.x, event.y )
 		end			
 		
 		if (event.other.myName == "blackhole") then
-			print("collided wtih BlackHole")
+			print("collided with BlackHole")
 			levelScore = score
 			endgame("succeeded")
-		elseif (event.other.myName ~= nil) then
-			print("collided with "..event.other.myName)
+
+
+		elseif (string.find(event.other.myName, "crate")) then
+			-- print("collided with "..event.other.myName)
+			-- print("upgrading from "..bullits().."...")
+			
+			if bullits() == "lasers" then
+				bullits("blocks")
+			elseif bullits() == "blocks" then
+				bullits("lines")
+			elseif bullits() == "lines" then
+				bullits("lasers")
+			else
+				print("are we even upgrading?")
+			end
 		else
-			-- print("rando collision")
+			-- print("other rando collision")
 		end
 
 	  return true
@@ -322,6 +269,8 @@ end
 -- When the end-state is reached, display score.
 function endgame(state)
 
+  Runtime:removeEventListener( "key", onKeyEvent )
+
   if (score > tonumber(hiScore)) then
     hiScore = score
     showHigh.text = "HiScore: "..hiScore
@@ -336,10 +285,11 @@ function endgame(state)
 
   quitter = true	
   finished = display.newText("You have "..state..". Your score is "..score, display.actualContentWidth*.5, display.actualContentHeight*.5, display.actualContentWidth*.8, 60, "Courier", 20)
-  restart = display.newText("Play Again?", display.actualContentWidth*.5, display.actualContentHeight*.8, native.systemFont, 16 )
+  restart = display.newText("PLAY AGAIN?", display.actualContentWidth*.5, display.actualContentHeight*.8, native.systemFont, 16 )
 
 	if(state == "lost") then
 		finished:setFillColor( 1, 0, 0 )
+		n = 0
 		a = 0
 		b = 0
 		score = 0
@@ -350,12 +300,10 @@ function endgame(state)
 		showBG = false
 		-- background:removeSelf()
 		-- background = display.newGroup()
-
-		-- Below is the banner ad instantiation code for iOS. The code as-is does not compile properly for Android.
-		-- showAd( "banner" )
 
 	elseif(state == "failx0red") then
 		finished:setFillColor( 1, 0, 1 )
+		n = 0
 		a = 0
 		b = 0
 		score = 0
@@ -367,23 +315,24 @@ function endgame(state)
 		showBG = false
 		-- background:removeSelf()
 		-- background = display.newGroup()
-		-- Below is the banner ad instantiation code for iOS. The code as-is does not compile properly for Android.
-		-- showAd( "banner" )
 
 -- Win-state advances to next level,
 	elseif(state == "succeeded") then
 		finished:setFillColor( 0, 1, 0 )
 		restart.text = "ENTER LEVEL "..b+1
 		-- finished.text = finished.text.."... \nTAP CONTINUE"
-		-- Below is the banner ad instantiation code for iOS. The code as-is does not compile properly for Android.
-		-- showAd( "banner" )
 	end
-	
+
+	-- Clear the screen of cruft.
 	spaceship:removeSelf()
 	shooto:removeSelf()
 	badguy:removeSelf()
 	laserGroup:removeSelf()
+
 	restart:addEventListener("tap", startGame)
 end
+-- Setting the default bullet type here to lasers.
+bullits("lasers")
 
+-- ENGAGE!
 startGame()

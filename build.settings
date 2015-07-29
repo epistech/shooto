@@ -6,16 +6,6 @@ settings =
     content = "portrait",
   },
 
-  plugins =
-  {
-      ["CoronaProvider.ads.iads"] =
-      {
-          publisherId = "com.coronalabs",
-          supportedPlatforms = { iphone=true, ["iphone-sim"]=true },
-      },
-  },      
-
-
   iphone =
   {
     plist =
@@ -70,6 +60,17 @@ settings =
     versionCode = "11",
     allowAppsReadOnlyAccessToFiles = false,
   },
+
+  window = {
+    defaultMode = "normal",
+    defaultViewWidth = 640,
+    defaultViewHeight = 960,
+    resizeable = false,
+    titleText = {
+      default = "shooto",
+      },
+  },
+
 
 }
 

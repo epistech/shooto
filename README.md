@@ -13,19 +13,22 @@ I'd like it to be a little bit more complex and interesting than it is so far. P
 Lots of significant, but little, changes as described in updates section below. I also figured out how to create some designed levels, which might be fun for a future update.
 
 ## To-do
-- Turn the music down? It's pretty loud right now...
 - Design a static course to start with
 - Start designing a tutorial/set of instructions on how to play.
 - Cleanup directory and remove excess/old files (music and sprite sheets, in particular).
 - Rebuild a new certificate for submission to app store.
 - Create a title screen and brief instructions.
 
-
 ## Future
 - Stage-select screen
 - Longer courses
 - Refactor like wow.
 
+### 0.92
+- Set music to 0.75
+- Bounce points now "upgrade" to different bullet types that cycle through a list.
+- Removed inclusion of iAds plugin so that the Corona dailies can compile an OSX build.
+- Added OSX icon files and window settings
 
 ### 0.91b
 - Almost ready for a 1.0 release! Submit this sucker Sunday, 7/26!?
