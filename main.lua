@@ -1,4 +1,4 @@
---[[ Spaceship Mini-Golf 0.92 aka "shooto" ]]--
+--[[ Spaceship Mini-Golf 0.94 aka "shooto" ]]--
 --[[=======================================]]--
 --   Programming by Tim Rodriguez
 --   Art by Tim Rodriguez
@@ -7,6 +7,39 @@
 --   an Azpen Android tablet, and time from
 --   Moment.
 --[[=======================================]]--
+
+-- TO DO --
+-- about -- Speaker icon by Dmitry Mamaev, theNounProject.com
+--
+--
+
+local systemFonts = native.getFontNames()
+
+-- Set the string to query for (part of the font name to locate)
+
+
+--
+--
+--
+--
+sWide = display.contentWidth
+sHigh = display.contentHeight
+
+print("scale factor: "..display.pixelWidth / display.actualContentWidth )
+
+print(sWide.."by"..sHigh)
+
+titleScreen = display.newImageRect("Default.png", sWide, sHigh)
+titleScreen.x = display.contentCenterX
+titleScreen.y = display.contentCenterY
+
+function tapToBegin()
+  titleScreen:removeSelf()
+  titleScreen = nil
+  startGame()
+end
+titleScreen:addEventListener( "tap", tapToBegin )
+
 
 
 -- Check if a HighScore document exists, and read the entry.
@@ -20,12 +53,10 @@ if (filePath) then
 	filePath = nil
 else
 	print("ERROR: "..errorString)
+	print("Caught the error...")
 	hiScore = 0
 end
 
-sWide = display.contentWidth
-sHigh = display.contentHeight
-print(sWide.."by"..sHigh)
 
 local physics = require("physics")
 physics.start()
@@ -44,8 +75,32 @@ background = display.newGroup()
 
 -- Instantiate the music here.
 backgroundMusic = audio.loadStream( "ShootoLoop2.wav" )
-backgroundMusicChannel = audio.play( backgroundMusic, { channel=1, loops=-1, fadein=5000 } )
-audio.setVolume( 0.7, { channel=1 } )  
+
+local speakerOptions = {
+	width = 30,
+	height = 30,
+	numFrames = 2,
+	sheetContentWidth = 60,
+	sheetContentHeight = 30
+}
+local speakerSheet = graphics.newImageSheet( "speaker_sheet.png", speakerOptions )
+local sequenceData = {
+	name = "speaker",
+	start = 1,
+	count = 2,
+}
+
+audio.play( backgroundMusic, { channel=1, loops=-1, fadein=5000 } )
+audio.setVolume( 0.5, { channel=1 } )
+
+-- speakerIcon = display.newSprite( speakerSheet, sequenceData )
+-- speakerIcon.audible = 1
+
+-- speakerIcon:setSequence( "speaker" )
+-- speakerIcon.x = (sWide - 20)
+-- speakerIcon.y = (sHigh - 20)
+
+
 
 -- "n" is used for iterating through lasers[n] objects to keep them unique.
 n = 0
@@ -116,6 +171,41 @@ function startGame()
 	blackhole.isSensor = true
 	--blackhole.addEventListener("collision",print("blackhole collided with "))
 
+
+
+	speakerIcon = display.newSprite( speakerSheet, sequenceData )
+	if speakerIcon.audible then
+	else 
+		speakerIcon.audible = 1
+	end
+
+	speakerIcon:setSequence( "speaker" )
+	speakerIcon.x = (sWide - 20)
+	speakerIcon.y = (sHigh - 20)
+
+	speakerIcon:setFrame( speakerIcon.audible )
+
+	function muteButton()
+	  print ("volume = "..audio.getVolume({ channel=1 }))
+	  
+	  if speakerIcon.audible == 1 then
+	    print("fade...out?")
+		audio.fade( {channel=1, time=2, volume=0.0 } )
+		speakerIcon.audible = 2
+		speakerIcon:setFrame( speakerIcon.audible )
+	  elseif speakerIcon.audible == 2 then
+	    print("fade...in?")
+		audio.fade( {channel=1, time=2, volume=0.5 } )
+		speakerIcon.audible = 1
+		speakerIcon:setFrame( speakerIcon.audible )
+	  end
+	end
+	speakerIcon:addEventListener( "tap", muteButton )
+
+
+
+
+
 	function spaceship:touch( event )
 	  if event.phase == "began" then
 		self.markX = self.x
@@ -176,6 +266,7 @@ function startGame()
 
 	function installBouncePoints()
 		local bouncePoint = {}
+		b = b + 1
 		--drawStar = display.newLine( 200, 90, 227, 165, 305,165, 243,216, 265,290, 200,245, 135,290, 157,215, 95,165, 173,165, 200,90 )
 		--physics.addBody(drawStar, "static", {density=1, bounce=0.1, friction=0.5})
 		--drawStar:setStrokeColor( 1, 0, 0, 1 )
@@ -183,13 +274,31 @@ function startGame()
 
 -- [Set up new levels here] --
 
-		b = b + 1
+
+		-- Randomize bouncepoints to set up crates vs. power-ups
+		powerup = math.random(1,100)
+		if powerup <= 20 then
+			powerup = "blocks"
+			upgradeColor = {1, 0, 1}
+			-- Later, this might be a place to put new image assets for these things.
+		elseif powerup <= 60 then
+			powerup = "lines"
+			upgradeColor = {0, 1, 1}
+		else
+			powerup = "crate"
+			upgradeColor = {1, 1, 1}
+		end
+		print("POWERUP: "..powerup)
+
+		-- Later, make this into something cooler than just a little square on the screen.		
 		bouncePoint[b] = display.newRect(math.random(1,display.contentWidth/12)*12,math.random(1,display.contentHeight/35)*12,20,20)
-		print(display.contentWidth.." X "..sHigh.." Y")
+		
 		physics.addBody(bouncePoint[b], "static", {density=1, bounce=0.1, friction=0.5})
-		-- print(b.." bounce points")
 		bounceGroup:insert(bouncePoint[b])
-		bouncePoint[b].myName = "crate"..b
+		
+		-- Dynamically name the crate and change the color if it's not a boring crate.
+		bouncePoint[b]:setFillColor(unpack(upgradeColor))
+		bouncePoint[b].myName = powerup..b
 	end
 
 -- Add Texture Packer-built spritesheet for the badguy animation. Details stored in tadpole.lua
@@ -240,20 +349,18 @@ function startGame()
 
 
 		elseif (string.find(event.other.myName, "crate")) then
-			-- print("collided with "..event.other.myName)
-			-- print("upgrading from "..bullits().."...")
+			print("crate collision")
+		
+		elseif (string.find(event.other.myName, "blocks")) then
+			print("collided with "..event.other.myName)
+			bullits("blocks")
+
+		elseif (string.find(event.other.myName, "lines")) then
+			print("collided with "..event.other.myName)
+			bullits("lines")
 			
-			if bullits() == "lasers" then
-				bullits("blocks")
-			elseif bullits() == "blocks" then
-				bullits("lines")
-			elseif bullits() == "lines" then
-				bullits("lasers")
-			else
-				print("are we even upgrading?")
-			end
 		else
-			-- print("other rando collision")
+			print("other rando collision")
 		end
 
 	  return true
@@ -271,21 +378,43 @@ function endgame(state)
 
   Runtime:removeEventListener( "key", onKeyEvent )
 
-  if (score > tonumber(hiScore)) then
-    hiScore = score
-    showHigh.text = "HiScore: "..hiScore
-    
---[[ Write a new file in overwrite mode, add the hiScore variable for future use. ]]--
-	filePath = system.pathForFile( "hs.txt", system.DocumentsDirectory )
-    filePath = io.open (filePath, "w")
-    filePath:write(hiScore)
-    io.close(filePath)
-    filePath = nil
-  end
 
-  quitter = true	
-  finished = display.newText("You have "..state..". Your score is "..score, display.actualContentWidth*.5, display.actualContentHeight*.5, display.actualContentWidth*.8, 60, "Courier", 20)
-  restart = display.newText("PLAY AGAIN?", display.actualContentWidth*.5, display.actualContentHeight*.8, native.systemFont, 16 )
+  quitter = true
+  if state == "lost" then
+  local options = 
+{
+    --parent = textGroup,
+    text = "Game Over",     
+    x = display.actualContentWidth*.5,
+    y = display.actualContentHeight*.5,
+    width = display.actualContentWidth*.8,     --required for multi-line and alignment
+    font = "Michroma",   
+    fontSize = 16,
+    align = "center"  --new alignment parameter
+}
+
+  	finished = display.newText(options) -- "Game Over\n\nHits: "..score.."\nBonus: x"..b.."\nTotal Score: "..(score*b), display.actualContentWidth*.5, display.actualContentHeight*.5, display.actualContentWidth*.8, 150, "Michroma", 20, align="center")
+    finished.text = "Game Over\n\nHits: "..score.."\nBonus: x"..b.."\nTotal Score: "..(score*b)
+	  if ((score * b) > tonumber(hiScore)) then
+		hiScore = (score * b)
+		showHigh.text = "HiScore: "..hiScore
+	
+	--[[ Write a new file in overwrite mode, add the hiScore variable for future use. ]]--
+		filePath = system.pathForFile( "hs.txt", system.DocumentsDirectory )
+		filePath = io.open (filePath, "w")
+		filePath:write(hiScore)
+		io.close(filePath)
+		filePath = nil
+	  end
+
+
+
+  elseif state == "succeeded" then
+    finished = display.newText("Success!\nProceed, Shooto!", display.actualContentWidth*.5, display.actualContentHeight*.5, display.actualContentWidth*.8, 150, "Michroma", 16)
+  else
+    finished = display.newText("Game Over.\nStay within mission parameters, Shooto. ", display.actualContentWidth*.5, display.actualContentHeight*.5, display.actualContentWidth*.8, 150, "Michroma", 16)
+  end
+  restart = display.newText("PLAY AGAIN?", display.actualContentWidth*.5, display.actualContentHeight*.8, "Michroma", 16 )
 
 	if(state == "lost") then
 		finished:setFillColor( 1, 0, 0 )
@@ -328,11 +457,12 @@ function endgame(state)
 	shooto:removeSelf()
 	badguy:removeSelf()
 	laserGroup:removeSelf()
-
+	speakerIcon:removeSelf()
+	speakerIcon:removeEventListener( "tap", muteButton )
+	
 	restart:addEventListener("tap", startGame)
 end
 -- Setting the default bullet type here to lasers.
 bullits("lasers")
-
 -- ENGAGE!
-startGame()
+

@@ -15,6 +15,7 @@ settings =
 			"Icon-60.png",
             "Icon-60@2x.png",
             "Icon-60@3x.png",
+            "Icon-72.png",
             "Icon-76.png",
             "Icon-76@2x.png",
             "Icon-Small-40.png",
@@ -63,15 +64,13 @@ settings =
 
   window = {
     defaultMode = "normal",
-    defaultViewWidth = 640,
-    defaultViewHeight = 960,
+    defaultViewWidth = 414,
+    defaultViewHeight = 736,
     resizeable = false,
     titleText = {
       default = "shooto",
       },
   },
-
-
 }
 
 
