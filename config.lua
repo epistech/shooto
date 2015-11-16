@@ -9,8 +9,7 @@ application =
 	imageSuffix =
 	{
 		["@2x"] = 2.0,
-		["@3x"] = 3.0,
+		["@3x"] = 2.5,
 	}
-  
   }
 }

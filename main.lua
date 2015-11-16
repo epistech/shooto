@@ -22,18 +22,19 @@ local systemFonts = native.getFontNames()
 --
 --
 --
-sWide = display.contentWidth
-sHigh = display.contentHeight
+local titleScreen
+local sWide = display.contentWidth
+local sHigh = display.contentHeight
 
 print("scale factor: "..display.pixelWidth / display.actualContentWidth )
-
 print(sWide.."by"..sHigh)
+
 
 titleScreen = display.newImageRect("Default.png", sWide, sHigh)
 titleScreen.x = display.contentCenterX
 titleScreen.y = display.contentCenterY
 
-function tapToBegin()
+local function tapToBegin()
   titleScreen:removeSelf()
   titleScreen = nil
   startGame()

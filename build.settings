@@ -57,9 +57,9 @@ settings =
 
   android =
   {
-    usesExpansionFile = true,
-    versionCode = "11",
+    versionCode = "094",
     allowAppsReadOnlyAccessToFiles = false,
+    largeHeap = true,
   },
 
   window = {

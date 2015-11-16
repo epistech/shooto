@@ -15,14 +15,24 @@ Lots of significant, but little, changes as described in updates section below. 
 ## To-do
 - Design a static course to start with
 - Start designing a tutorial/set of instructions on how to play.
-- Cleanup directory and remove excess/old files (music and sprite sheets, in particular).
-- Rebuild a new certificate for submission to app store.
+- Cleanup directory and remove excess/old files (music, sprite sheets, PSDs, in particular).
 - Create a title screen and brief instructions.
 
 ## Future
 - Stage-select screen
 - Longer courses
 - Refactor like wow.
+
+## Known Issues
+- Mute button resets to default state at the start of a new level
+
+### 0.94a (2015/11/16)
+- Set audio volume to 0.5
+- changed bounce points to sometimes spawn "powerups" which work the same, except for that's now how you upgrade your lasers.
+- added an in-app mute button
+- Fixes for actually running on Android
+- New distro certificate means this can be pushed out to TestFlight
+- Added a splash screen that shows up at launch
 
 ### 0.92
 - Set music to 0.75
@@ -40,16 +50,16 @@ Lots of significant, but little, changes as described in updates section below. 
 * Added iAds code for monetization.
 * Updated the end-of-play/end-of-level text to create apparent advancement.
 
-### 1.0.7a1
+### 0.7a1
 - Make a "black hole" sprite to aim at.
 - Boxes now vanish on hit
 
-### 1.0.6
+### 0.6
 - Fixed scoring bugs
 - fixed splash screens
 - new animated sprite for main ship
 
-### 1.0.5
+### 0.5
 - Added music
 - Added highscore feature
 
@@ -57,4 +67,3 @@ Lots of significant, but little, changes as described in updates section below. 
 Will Not Fix
 ------------
 - Figure out how to multi-touch turn the ship so that it can aim in different directions.
-- Experiment with different gun-types that work in different ways.
