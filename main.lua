@@ -61,6 +61,7 @@ end
 
 local physics = require("physics")
 physics.start()
+
 system.activate( "multitouch" )
 
 score = 0
@@ -89,6 +90,7 @@ local sequenceData = {
 	name = "speaker",
 	start = 1,
 	count = 2,
+	audible = 1,
 }
 
 audio.play( backgroundMusic, { channel=1, loops=-1, fadein=5000 } )
@@ -149,6 +151,7 @@ end
 
 -- This is the main body of the game. 
 function startGame()
+	-- print("speakerIcon.audible: "..speakerIcon.audible)
 -- Add the key event listener here, so that it only listens while the game is running.
 	Runtime:addEventListener( "key", onKeyEvent )
 
@@ -156,10 +159,10 @@ function startGame()
 	quitter = false
 
 	shippo = graphics.newImageSheet( "ship_sprite.png", {width = 180, height = 70, numFrames = 4} )
-	holey =  graphics.newImageSheet( "blackhole.png",   {width =  80, height = 80, numFrames = 12})
+	holey =  graphics.newImageSheet( "blackhole2.png",   {width =  80, height = 80, numFrames = 6})
 
 	spaceship = display.newSprite(shippo, {name="flying", time=1000, frames={1,3,2,4}, loopCount = 0, loopDirection = "forward"})
-	blackhole = display.newSprite(holey,  {time = 500, start = 1, count = 12})
+	blackhole = display.newSprite(holey,  {time = 600, start = 1, count = 6})
 	
 	spaceship:play()
 	blackhole:play()
@@ -171,34 +174,51 @@ function startGame()
 	blackhole.myName = "blackhole"
 	blackhole.isSensor = true
 	--blackhole.addEventListener("collision",print("blackhole collided with "))
+	
+	local function moveBlackhole(speed)
+	  if blackhole.x == sWide then
+	    print("black hole is in the middle or on the right hand side; move it left")
+	    transition.to(blackhole, {time=speed, x = 0, onComplete = moveBlackhole})
 
+	  else 
 
+	    print("black hole is by implicitly on the left, move it right I think")
+	    transition.to(blackhole, {time=speed, x = display.contentWidth, onComplete = moveBlackhole})
+	  end
+	end
+
+	if b % 3 == 1 then
+	  -- moveBlackhole(10000/b)
+	end
+	
 
 	speakerIcon = display.newSprite( speakerSheet, sequenceData )
-	if speakerIcon.audible then
+	if sequenceData.audible then
+	  print("speakerIcon.audible: "..sequenceData.audible)
 	else 
-		speakerIcon.audible = 1
+		print("sequenceData.audible isn't 1, reset to 1")
+		sequenceData.audible = 1
 	end
 
 	speakerIcon:setSequence( "speaker" )
 	speakerIcon.x = (sWide - 20)
 	speakerIcon.y = (sHigh - 20)
 
-	speakerIcon:setFrame( speakerIcon.audible )
+	speakerIcon:setFrame( sequenceData.audible )
 
 	function muteButton()
 	  print ("volume = "..audio.getVolume({ channel=1 }))
 	  
-	  if speakerIcon.audible == 1 then
+	  if sequenceData.audible == 1 then
 	    print("fade...out?")
 		audio.fade( {channel=1, time=2, volume=0.0 } )
-		speakerIcon.audible = 2
-		speakerIcon:setFrame( speakerIcon.audible )
-	  elseif speakerIcon.audible == 2 then
+		sequenceData.audible = 2
+		speakerIcon:setFrame( sequenceData.audible )
+	  elseif sequenceData.audible == 2 then
 	    print("fade...in?")
 		audio.fade( {channel=1, time=2, volume=0.5 } )
-		speakerIcon.audible = 1
-		speakerIcon:setFrame( speakerIcon.audible )
+		sequenceData.audible = 1
+		speakerIcon:setFrame( sequenceData.audible )
 	  end
 	end
 	speakerIcon:addEventListener( "tap", muteButton )
@@ -278,13 +298,16 @@ function startGame()
 
 		-- Randomize bouncepoints to set up crates vs. power-ups
 		powerup = math.random(1,100)
-		if powerup <= 20 then
+		if powerup <= 10 then
 			powerup = "blocks"
 			upgradeColor = {1, 0, 1}
 			-- Later, this might be a place to put new image assets for these things.
-		elseif powerup <= 60 then
+		elseif powerup <= 20 then
 			powerup = "lines"
 			upgradeColor = {0, 1, 1}
+		elseif powerup <= 30 then
+			powerup = "lasers"
+			upgradeColor = {1, 1, 0}			
 		else
 			powerup = "crate"
 			upgradeColor = {1, 1, 1}
@@ -351,15 +374,15 @@ function startGame()
 
 		elseif (string.find(event.other.myName, "crate")) then
 			print("crate collision")
-		
 		elseif (string.find(event.other.myName, "blocks")) then
 			print("collided with "..event.other.myName)
 			bullits("blocks")
-
 		elseif (string.find(event.other.myName, "lines")) then
 			print("collided with "..event.other.myName)
 			bullits("lines")
-			
+		elseif (string.find(event.other.myName, "lasers")) then
+			print("collided with "..event.other.myName)
+			bullits("lasers")
 		else
 			print("other rando collision")
 		end
@@ -457,6 +480,7 @@ function endgame(state)
 	spaceship:removeSelf()
 	shooto:removeSelf()
 	badguy:removeSelf()
+	blackhole:removeSelf()
 	laserGroup:removeSelf()
 	speakerIcon:removeSelf()
 	speakerIcon:removeEventListener( "tap", muteButton )
